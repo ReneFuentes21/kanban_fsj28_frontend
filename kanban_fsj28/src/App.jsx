@@ -15,7 +15,7 @@ const App = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
   const [renamingBoard, setRenamingBoard] = useState(null);
-  const [viewMode, setViewMode] = useState("kanban"); // 👈 aquí defines el estado de la vista
+  const [viewMode, setViewMode] = useState("kanban");
 
   const activeBoard = boards.find(board => board.id === activeBoardId);
 
