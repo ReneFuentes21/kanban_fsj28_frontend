@@ -3,6 +3,7 @@ import { initialBoards } from './services/tasks';
 import { Status, Priority } from './constants';
 import Header from './components/Header';
 import Board from './components/Board';
+import ListView from './components/ListView';
 import EditTaskModal from './components/EditTaskModal';
 import NewBoardModal from './components/NewBoardModal';
 import RenameBoardModal from './components/RenameBoardModal';
@@ -14,6 +15,7 @@ const App = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
   const [renamingBoard, setRenamingBoard] = useState(null);
+  const [viewMode, setViewMode] = useState("kanban"); // 👈 aquí defines el estado de la vista
 
   const activeBoard = boards.find(board => board.id === activeBoardId);
 
@@ -139,18 +141,34 @@ const App = () => {
         activeBoardId={activeBoardId} 
         onSelectBoard={setActiveBoardId}
         onNewBoard={handleCreateNewBoard}
+        onToggleView={() => setViewMode(viewMode === "kanban" ? "list" : "kanban")}
+        viewMode={viewMode}
       />
       <main className="p-4 sm:p-6 lg:p-8">
-        <Board
-          board={activeBoard}
-          onAddTask={handleAddTask}
-          onDeleteTask={handleDeleteTask}
-          onEditTask={setEditingTask}
-          onSaveTask={handleSaveTask}
-          onRenameBoard={handleRenameBoard}
-          onDeleteBoard={handleDeleteBoard}
-        />
-      </main>
+  {viewMode === "kanban" ? (
+    <Board
+      board={activeBoard}
+      onAddTask={handleAddTask}
+      onDeleteTask={handleDeleteTask}
+      onEditTask={setEditingTask}
+      onSaveTask={handleSaveTask}
+      onRenameBoard={handleRenameBoard}
+      onDeleteBoard={handleDeleteBoard}
+    />
+  ) : (
+    //AGREGADO
+    <ListView 
+      board={activeBoard} 
+      onAddTask={handleAddTask}
+      onDeleteTask={handleDeleteTask}
+      onEditTask={setEditingTask}
+      onSaveTask={handleSaveTask}
+      onRenameBoard={handleRenameBoard}
+      onDeleteBoard={handleDeleteBoard}
+    />
+  )}
+</main>
+
       {editingTask && (
         <EditTaskModal
           task={editingTask}

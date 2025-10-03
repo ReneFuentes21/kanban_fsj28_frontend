@@ -16,7 +16,7 @@ const formatDateForInput = (date) => {
     }
 };
 
-const TaskCard = ({ task, onEdit, onDelete, onSave }) => {
+const TaskCard = ({ task, onEdit, onDelete, onSave, horizontal = false }) => {
     const [editingField, setEditingField] = useState(null); // null | 'title' | 'description' | 'priority' | 'deadline'
     const [editedTask, setEditedTask] = useState(task);
 
@@ -83,26 +83,35 @@ const TaskCard = ({ task, onEdit, onDelete, onSave }) => {
         setEditedTask(task); // Reset to original task data before editing a field
         setEditingField(field);
     };
-
+    
     return (
-        <div
+        <div //MODIFICADO
             onDoubleClick={onEdit}
-            className="bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-3 hover:shadow-lg transition-shadow duration-200 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
+            className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-3 hover:shadow-lg transition-shadow duration-200 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
+            ${horizontal ? 'flex flex-row items-center gap-4' : 'flex flex-col space-y-3'}`}
             title="Doble clic para editar en detalle"
         >
-            <div className="flex justify-between items-start">
-                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{task.id}</span>
+            {/* Estilo para que el ID Y el botón de eliminar estén alineados */}
+            <div className="flex flex-col justify-between items-start w-[80px] flex-shrink-0"> 
+                <span //MODIFICADO
+                    className="text-xs font-mono text-gray-500 dark:text-gray-400 max-w-[80px] truncate block"
+                    title={task.id} // Al pasar el cursor muestra el ID completo
+                >
+                    {task.id}
+                </span>
+
                 <button
                     onClick={(e) => {
                         e.stopPropagation(); // Prevent double click event from firing on the parent
                         onDelete();
                     }}
-                    className="text-gray-400 hover:text-red-500 transition-colors dark:text-gray-500 dark:hover:text-red-500"
+                    className="text-gray-400 hover:text-red-500 transition-colors dark:text-gray-500 dark:hover:text-red-500 flex-shrink-0 p-0"
                 >
                     <TrashIcon />
                 </button>
             </div>
 
+            <div className={`${horizontal ? 'flex-1 flex flex-col' : ''}`}>
             {editingField === 'title' ? (
                 <input
                     type="text"
@@ -134,7 +143,9 @@ const TaskCard = ({ task, onEdit, onDelete, onSave }) => {
             ) : (
                 <p onClick={(e) => { e.stopPropagation(); handleStartEditing('description'); }} className="text-sm text-gray-600 mt-1 min-h-[1.25rem] dark:text-gray-300">{task.description || <span className="text-gray-400 dark:text-gray-500 italic">Sin Descripción</span>}</p>
             )}
+            </div>
 
+            
             <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor}`}>
                 {task.status}
             </span>
@@ -167,7 +178,7 @@ const TaskCard = ({ task, onEdit, onDelete, onSave }) => {
                 </div>
             </div>
 
-            <div className="border-t border-gray-200 dark:border-slate-600 pt-3 mt-3 flex justify-between items-center text-xs">
+            <div className="border-t border-gray-200 dark:border-slate-600 pt-3 mt-3 text-xs flex flex-col gap-4"> {/* Estilos para la fecha de creación y límite */}
                 <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
                     <span>Creado: {new Date(task.creationDate).toLocaleDateString()}</span>
                 </div>

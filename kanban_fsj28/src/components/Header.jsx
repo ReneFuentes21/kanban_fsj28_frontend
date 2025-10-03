@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BoardIcon, PlusIcon, ListIcon, ChevronDownIcon } from '../constants';
 
-const Header = ({ boards, activeBoardId, onSelectBoard, onNewBoard }) => {
+const Header = ({ boards, activeBoardId, onSelectBoard, onNewBoard, onToggleView, viewMode }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const activeBoard = boards.find(b => b.id === activeBoardId);
 
@@ -55,9 +55,11 @@ const Header = ({ boards, activeBoardId, onSelectBoard, onNewBoard }) => {
                         <PlusIcon />
                         <span>Nuevo Tablero</span>
                     </button>
-                    <button className="flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600">
-                        <ListIcon />
-                        <span>Vista Lista</span>
+                    <button
+                        onClick={onToggleView}
+                        className="flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600">
+                            <ListIcon />
+                            <span>{viewMode === "kanban" ? "Vista Lista" : "Vista Kanban"}</span>
                     </button>
                 </div>
             </div>
