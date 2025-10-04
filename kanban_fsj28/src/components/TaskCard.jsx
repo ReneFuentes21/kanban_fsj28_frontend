@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { STATUS_COLORS, PRIORITY_COLORS, TrashIcon, CalendarIcon, Priority } from '../constants';
+import { useSortable } from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities'
+
 
 // Helper to format date object to 'YYYY-MM-DD' string for date inputs
 const formatDateForInput = (date) => {
@@ -83,9 +86,22 @@ const TaskCard = ({ task, onEdit, onDelete, onSave, horizontal = false }) => {
         setEditedTask(task); // Reset to original task data before editing a field
         setEditingField(field);
     };
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging  } = useSortable({
+        id: task.id,   
+        data: {
+         type: "Task",  
+            task,         
+            },
+            disable:editingField !==null,
+        });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging? 0.5 : 1,
+        };
     
     return (
-        <div //MODIFICADO
+        <div ref={setNodeRef} style={style} {...attributes}{...listeners}//MODIFICADO
             onDoubleClick={onEdit}
             className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-3 hover:shadow-lg transition-shadow duration-200 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"
             ${horizontal ? 'flex flex-row items-center gap-4' : 'flex flex-col space-y-3'}`}
