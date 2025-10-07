@@ -2,25 +2,11 @@ import React, { useState } from 'react';
 
 const NewBoardModal = ({ onClose, onCreate }) => {
     const [boardName, setBoardName] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        if (!boardName.trim()) return;
-        
-        setLoading(true);
-        setError('');
-        
-        try {
-            await onCreate(boardName.trim());
-            // Si onCreate se completa sin errores, el modal debería cerrarse
-            // Si no se cierra, significa que onCreate no está resolviendo/rechazando correctamente
-        } catch (err) {
-            console.error('Error creating board:', err);
-            setError(err.message || 'Error al crear el tablero');
-        } finally {
-            setLoading(false);
+        if (boardName.trim()) {
+            onCreate(boardName.trim());
         }
     };
 
@@ -44,25 +30,21 @@ const NewBoardModal = ({ onClose, onCreate }) => {
                             placeholder="Ej: Lanzamiento Producto"
                             autoFocus
                         />
-                        {error && (
-                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-                        )}
                     </div>
                     <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 dark:bg-slate-900/50 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            disabled={loading}
-                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
+                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-600"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            disabled={!boardName.trim() || loading}
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
+                            disabled={!boardName.trim()}
                         >
-                            {loading ? 'Creando...' : 'Crear Tablero'}
+                            Crear Tablero
                         </button>
                     </div>
                 </form>

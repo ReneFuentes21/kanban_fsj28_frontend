@@ -1,48 +1,28 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import TaskCard from './TaskCard';
 import { STATUS_BG_COLORS, STATUS_BORDER_COLORS, EmptyStateIcon, PlusIcon } from '../constants';
-import { SortableContext, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
-const Column = ({ column, onAddTask, onDeleteTask, onEditTask, onSaveTask }) => {
+const Column = ({ column,columns, onAddTask, onDeleteTask, onEditTask, onSaveTask }) => { 
+
+
     const bgColor = STATUS_BG_COLORS[column.id];
     const borderColor = STATUS_BORDER_COLORS[column.id];
 
-    const taskIds = useMemo(()=>{
-        return column.tasks.map((task)=>task.id);
-    },[column.tasks]);
-
-    const { attributes, listeners, setNodeRef, transform, transition,isDragging  } = useSortable({
-        id: column.id,   
-        data: {
-            type: "Column",  
-            column          
-        }
-    });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity:isDragging? 0.5 :1,
-        
-    };
-
-
     return (
-        <div ref={setNodeRef} style={style} className={`flex flex-col rounded-xl shadow-sm p-4 border ${borderColor} ${bgColor}`}>
-            <div {...attributes} {...listeners} className="flex-shrink-0 flex justify-between items-center mb-4">
+        <div className={`flex flex-col rounded-xl shadow-sm p-4 border ${borderColor} ${bgColor}`}>
+            <div className="flex-shrink-0 flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-800 dark:text-gray-100">{column.title}</h3>
                 <span className="text-sm font-semibold text-gray-500 bg-gray-200 rounded-full px-2 py-0.5 dark:bg-slate-700 dark:text-gray-300">
                     {column.tasks.length}
                 </span>
             </div>
             <div className="flex-grow space-y-4 overflow-y-auto pr-1 min-h-[350px] sm:min-h-[400px]">
-                <SortableContext items={taskIds}>
                 {column.tasks.length > 0 ? (
                     column.tasks.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
+                            columns={columns} // ← PASAR columns A TaskCard
                             onDelete={() => onDeleteTask(task)}
                             onEdit={() => onEditTask(task)}
                             onSave={onSaveTask}
@@ -54,7 +34,6 @@ const Column = ({ column, onAddTask, onDeleteTask, onEditTask, onSaveTask }) => 
                         <p className="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400">No hay tareas</p>
                     </div>
                 )}
-                </SortableContext>
             </div>
             <button
                 onClick={onAddTask}

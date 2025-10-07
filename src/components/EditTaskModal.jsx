@@ -3,8 +3,6 @@ import { Status, Priority } from '../constants';
 
 const EditTaskModal = ({ task, onClose, onSave }) => {
     const [formData, setFormData] = useState(task);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     useEffect(() => {
         setFormData(task);
@@ -18,42 +16,28 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
                 user: { ...prev.user, [name]: value },
             }));
         } else if (name === 'deadline') {
+            // Parse date string as local time to avoid timezone issues
             setFormData(prev => ({ ...prev, deadline: value ? new Date(value + 'T00:00:00') : null }));
-        } else {
+        }
+        else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const taskToSave = {
-                ...formData,
-                title: formData.title.trim() || 'Nueva Tarea',
-                description: formData.description.trim() || 'Descripción de la nueva tarea.',
-                user: {
-                    ...formData.user,
-                    name: formData.user.name.trim() || 'Sin asignar',
-                    role: formData.user.role.trim() || 'N/A',
-                    avatarUrl: formData.user.avatarUrl.trim() || 'https://i.pravatar.cc/40',
-                }
-            };
-            
-            console.log('Saving task:', taskToSave);
-            await onSave(taskToSave);
-            console.log('Task saved successfully, closing modal');
-            // El modal debería cerrarse automáticamente desde el padre
-            // Si no se cierra, significa que onSave no está resolviendo correctamente
-            
-        } catch (err) {
-            console.error('Error saving task:', err);
-            setError(err.message || 'Error al guardar la tarea');
-        } finally {
-            setLoading(false);
-        }
+        const taskToSave = {
+            ...formData,
+            title: formData.title.trim() || 'Nueva Tarea',
+            description: formData.description.trim() || 'Descripción de la nueva tarea.',
+            user: {
+                ...formData.user,
+                name: formData.user.name.trim() || 'Sin asignar',
+                role: formData.user.role.trim() || 'N/A',
+                avatarUrl: formData.user.avatarUrl.trim() || 'https://i.pravatar.cc/40',
+            }
+        };
+        onSave(taskToSave);
     };
 
     return (
@@ -66,12 +50,6 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
                     </div>
 
                     <div className="p-6 space-y-4">
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-4 dark:bg-red-900/20 dark:border-red-800">
-                                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                            </div>
-                        )}
-                        
                         <div>
                             <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Título</label>
                             <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="Nueva Tarea" />
@@ -132,23 +110,15 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
                                 <input type="text" name="avatarUrl" id="userAvatarUrl" value={formData.user.avatarUrl} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="https://i.pravatar.cc/40" />
                             </div>
                         </div>
+
                     </div>
 
                     <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 dark:bg-slate-900/50 dark:border-slate-700">
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
-                            disabled={loading}
-                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
-                        >
+                        <button type="button" onClick={onClose} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-600">
                             Cancelar
                         </button>
-                        <button 
-                            type="submit" 
-                            disabled={loading}
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Guardando...' : 'Guardar Cambios'}
+                        <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Guardar Cambios
                         </button>
                     </div>
                 </form>

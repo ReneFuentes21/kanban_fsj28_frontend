@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import { BoardIcon, PlusIcon, ListIcon, GridIcon, ChevronDownIcon } from '../constants';
+import { BoardIcon, PlusIcon, ListIcon, ChevronDownIcon } from '../constants';
 
-const Header = ({ 
-  boards, 
-  activeBoardId, 
-  onSelectBoard, 
-  onNewBoard, 
-  viewMode, 
-  onViewModeChange 
-}) => {
+const Header = ({ boards, activeBoardId, onSelectBoard, onNewBoard }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const activeBoard = boards.find(b => b.id === activeBoardId);
 
@@ -62,30 +55,10 @@ const Header = ({
                         <PlusIcon />
                         <span>Nuevo Tablero</span>
                     </button>
-                    <div className="flex border border-gray-300 rounded-md overflow-hidden dark:border-slate-600">
-                        <button 
-                            onClick={() => onViewModeChange('kanban')}
-                            className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium transition-colors ${
-                                viewMode === 'kanban' 
-                                    ? 'bg-indigo-600 text-white' 
-                                    : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                        >
-                            <GridIcon />
-                            <span>Kanban</span>
-                        </button>
-                        <button 
-                            onClick={() => onViewModeChange('list')}
-                            className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium transition-colors ${
-                                viewMode === 'list' 
-                                    ? 'bg-indigo-600 text-white' 
-                                    : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600'
-                            }`}
-                        >
-                            <ListIcon />
-                            <span>Lista</span>
-                        </button>
-                    </div>
+                    <button className="flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600">
+                        <ListIcon />
+                        <span>Vista Lista</span>
+                    </button>
                 </div>
             </div>
         </header>

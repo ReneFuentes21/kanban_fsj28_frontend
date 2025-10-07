@@ -26,9 +26,8 @@ const Board = ({ board, onAddTask, onDeleteTask, onEditTask, onSaveTask, onRenam
                         <PlusIcon />
                         <span>Agregar tarea</span>
                     </button>
-                    {/* BOTÓN CORREGIDO - pasar board.id */}
                     <button
-                        onClick={() => onDeleteBoard(board.id)}
+                        onClick={onDeleteBoard}
                         className="flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                     >
                         <TrashIcon />
@@ -42,7 +41,6 @@ const Board = ({ board, onAddTask, onDeleteTask, onEditTask, onSaveTask, onRenam
                         key={column.id}
                         column={column}
                         onAddTask={() => onAddTask(column.id)}
-                        columns={board.columns}
                         onDeleteTask={onDeleteTask}
                         onEditTask={onEditTask}
                         onSaveTask={onSaveTask}
