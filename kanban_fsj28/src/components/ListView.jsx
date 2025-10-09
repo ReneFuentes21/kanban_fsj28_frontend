@@ -5,7 +5,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editedTask, setEditedTask] = useState(null);
 
-    // Obtener todas las tareas del tablero
     const allTasks = board.columns.flatMap(column => 
         column.tasks.map(task => ({
             ...task,
@@ -13,6 +12,21 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
             columnId: column.id
         }))
     );
+
+    const getDaysRemaining = (deadline) => {
+        if (!deadline) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deadlineDate = new Date(deadline);
+        deadlineDate.setHours(0, 0, 0, 0);
+        const diffTime = deadlineDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) return 'Hoy';
+        if (diffDays === 1) return '1 día';
+        if (diffDays > 1) return `${diffDays} días`;
+        if (diffDays === -1) return '1 día de retraso';
+        return `${Math.abs(diffDays)} días de retraso`;
+    };
 
     const handleEditClick = (task) => {
         setEditingTaskId(task.id);
@@ -70,10 +84,8 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
         today.setHours(0, 0, 0, 0);
         const deadlineDate = new Date(deadline);
         deadlineDate.setHours(0, 0, 0, 0);
-
         const diffTime = deadlineDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
         if (diffDays < 0) return 'text-red-600 font-semibold dark:text-red-400';
         if (diffDays <= 3) return 'text-orange-500 font-semibold dark:text-orange-400';
         return 'text-gray-500 dark:text-gray-400';
@@ -91,35 +103,22 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-                {/* Vista de escritorio - Tabla */}
                 <div className="hidden lg:block">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Tarea
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Estado
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Prioridad
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Asignado a
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Fecha Límite
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                                    Acciones
-                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Tarea</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Estado</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Prioridad</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Asignado a</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Asignado por</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Fecha Límite</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-800 dark:divide-slate-700">
                             {allTasks.map((task) => (
                                 <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                                    {/* Título y Descripción */}
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <div className="space-y-2 min-w-[200px]">
@@ -149,8 +148,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             </div>
                                         )}
                                     </td>
-
-                                    {/* Estado */}
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <select
@@ -168,8 +165,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             </span>
                                         )}
                                     </td>
-
-                                    {/* Prioridad */}
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <select
@@ -187,8 +182,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             </span>
                                         )}
                                     </td>
-
-                                    {/* Asignado a */}
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <input
@@ -216,8 +209,26 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             </div>
                                         )}
                                     </td>
-
-                                    {/* Fecha Límite */}
+                                    <td className="px-4 py-4">
+                                        {editingTaskId === task.id ? (
+                                            <input
+                                                type="text"
+                                                value={editedTask.allocator || ''}
+                                                onChange={(e) => handleFieldChange('allocator', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                                placeholder="Quién asignó"
+                                            />
+                                        ) : (
+                                            <div className="text-sm">
+                                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                                    {task.allocator || 'No especificado'}
+                                                </div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Asignó la tarea
+                                                </div>
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <input
@@ -228,17 +239,20 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             />
                                         ) : (
                                             task.deadline ? (
-                                                <div className={`flex items-center space-x-2 ${getDeadlineColor(task.deadline)}`}>
-                                                    <CalendarIcon />
-                                                    <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
+                                                <div className={`flex flex-col space-y-1 ${getDeadlineColor(task.deadline)}`}>
+                                                    <div className="flex items-center space-x-2">
+                                                        <CalendarIcon />
+                                                        <span className="text-sm">{new Date(task.deadline).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <div className="text-xs opacity-75 pl-5">
+                                                        ({getDaysRemaining(task.deadline)})
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span className="text-sm text-gray-400 dark:text-gray-500">Sin fecha</span>
                                             )
                                         )}
                                     </td>
-
-                                    {/* Acciones */}
                                     <td className="px-4 py-4">
                                         {editingTaskId === task.id ? (
                                             <div className="flex flex-col space-y-2 min-w-[120px]">
@@ -280,14 +294,12 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                     </table>
                 </div>
 
-                {/* Vista móvil - Cards */}
                 <div className="lg:hidden">
                     <div className="divide-y divide-gray-200 dark:divide-slate-700">
                         {allTasks.map((task) => (
                             <div key={task.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700">
                                 {editingTaskId === task.id ? (
                                     <div className="space-y-4">
-                                        {/* Título editable */}
                                         <input
                                             type="text"
                                             value={editedTask.title}
@@ -295,8 +307,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             className="w-full px-3 py-2 border border-gray-300 rounded text-base font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
                                             placeholder="Título"
                                         />
-                                        
-                                        {/* Descripción editable */}
                                         <textarea
                                             value={editedTask.description}
                                             onChange={(e) => handleFieldChange('description', e.target.value)}
@@ -304,14 +314,9 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                             className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
                                             placeholder="Descripción"
                                         />
-
-                                        {/* Campos editables en grid */}
                                         <div className="grid grid-cols-2 gap-3">
-                                            {/* Estado */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    Estado
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Estado</label>
                                                 <select
                                                     value={editedTask.status}
                                                     onChange={(e) => handleFieldChange('status', e.target.value)}
@@ -322,12 +327,8 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                     ))}
                                                 </select>
                                             </div>
-
-                                            {/* Prioridad */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    Prioridad
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prioridad</label>
                                                 <select
                                                     value={editedTask.priority}
                                                     onChange={(e) => handleFieldChange('priority', e.target.value)}
@@ -338,12 +339,8 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                     ))}
                                                 </select>
                                             </div>
-
-                                            {/* Asignado a */}
                                             <div className="col-span-2">
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    Asignado a
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Asignado a</label>
                                                 <input
                                                     type="text"
                                                     value={editedTask.user.name}
@@ -352,12 +349,18 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                     placeholder="Nombre"
                                                 />
                                             </div>
-
-                                            {/* Fecha Límite */}
                                             <div className="col-span-2">
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                    Fecha Límite
-                                                </label>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Asignado por</label>
+                                                <input
+                                                    type="text"
+                                                    value={editedTask.allocator || ''}
+                                                    onChange={(e) => handleFieldChange('allocator', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                                    placeholder="Quién asignó"
+                                                />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha Límite</label>
                                                 <input
                                                     type="date"
                                                     value={formatDateForInput(editedTask.deadline)}
@@ -366,8 +369,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                 />
                                             </div>
                                         </div>
-
-                                        {/* Botones de acción */}
                                         <div className="flex space-x-2 pt-2">
                                             <button
                                                 onClick={() => handleSaveClick(task.id)}
@@ -385,7 +386,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                     </div>
                                 ) : (
                                     <>
-                                        {/* Header de la card */}
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex-1">
                                                 <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
@@ -412,8 +412,6 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                 </button>
                                             </div>
                                         </div>
-
-                                        {/* Detalles de la task */}
                                         <div className="grid grid-cols-2 gap-3 text-sm">
                                             <div className="flex items-center space-x-2">
                                                 <span className="font-medium text-gray-500 dark:text-gray-400">Estado:</span>
@@ -439,11 +437,22 @@ const ListView = ({ board, onEditTask, onDeleteTask, onSaveTask }) => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center space-x-2 col-span-2">
+                                                <span className="font-medium text-gray-500 dark:text-gray-400">Asignado por:</span>
+                                                <span className="text-gray-900 dark:text-gray-100">
+                                                    {task.allocator || 'No especificado'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center space-x-2 col-span-2">
                                                 <span className="font-medium text-gray-500 dark:text-gray-400">Fecha Límite:</span>
                                                 {task.deadline ? (
-                                                    <div className={`flex items-center space-x-1 ${getDeadlineColor(task.deadline)}`}>
-                                                        <CalendarIcon />
-                                                        <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                                                    <div className={`flex flex-col space-y-1 ${getDeadlineColor(task.deadline)}`}>
+                                                        <div className="flex items-center space-x-1">
+                                                            <CalendarIcon />
+                                                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <div className="text-xs opacity-75 pl-5">
+                                                            ({getDaysRemaining(task.deadline)})
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <span className="text-gray-400 dark:text-gray-500">Sin fecha</span>

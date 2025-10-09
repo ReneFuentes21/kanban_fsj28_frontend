@@ -22,25 +22,28 @@ export const STATUS_COLORS = {
 };
 
 export const STATUS_BG_COLORS = {
-    [Status.PENDIENTE]: 'bg-gray-100 dark:bg-slate-800',
-    [Status.EN_PROGRESO]: 'bg-gray-100 dark:bg-slate-800',
-    [Status.EN_REVISION]: 'bg-gray-100 dark:bg-slate-800',
-    [Status.FINALIZADO]: 'bg-gray-100 dark:bg-slate-800',
+    [Status.PENDIENTE]: 'bg-red-50 dark:bg-red-900/20',
+    [Status.EN_PROGRESO]: 'bg-yellow-50 dark:bg-yellow-900/20',
+    [Status.EN_REVISION]: 'bg-blue-50 dark:bg-blue-900/20',
+    [Status.FINALIZADO]: 'bg-green-50 dark:bg-green-900/20',
 };
 
 export const STATUS_BORDER_COLORS = {
-    [Status.PENDIENTE]: 'border-gray-200 dark:border-slate-700',
-    [Status.EN_PROGRESO]: 'border-gray-200 dark:border-slate-700',
-    [Status.EN_REVISION]: 'border-gray-200 dark:border-slate-700',
-    [Status.FINALIZADO]: 'border-gray-200 dark:border-slate-700',
+    [Status.PENDIENTE]: 'border-red-200 dark:border-red-700',
+    [Status.EN_PROGRESO]: 'border-yellow-200 dark:border-yellow-700',
+    [Status.EN_REVISION]: 'border-blue-200 dark:border-blue-700',
+    [Status.FINALIZADO]: 'border-green-200 dark:border-green-700',
 };
-
 
 export const PRIORITY_COLORS = {
     [Priority.BAJA]: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
     [Priority.MEDIA]: 'bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200',
     [Priority.ALTA]: 'bg-orange-200 text-orange-800 dark:bg-orange-900/60 dark:text-orange-200',
     [Priority.URGENTE]: 'bg-red-200 text-red-800 dark:bg-red-900/60 dark:text-red-200',
+};
+
+export const ItemTypes = {
+  TASK: 'task'
 };
 
 export const PencilIcon = () => (
@@ -91,7 +94,6 @@ export const CalendarIcon = () => (
     </svg>
 );
 
-// En constants.js, agrega:
 export const GridIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

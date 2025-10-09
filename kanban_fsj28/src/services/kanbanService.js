@@ -1,4 +1,3 @@
-// src/services/kanbanService.js
 import api from './apiClient';
 
 const boards = {
@@ -28,7 +27,6 @@ const boards = {
   }
 };
 
-// Columns - en tu API se llaman "cards"
 const columns = {
   list: async (boardId) => {
     const resp = await api.get(`/boards/${boardId}/cards`);
@@ -48,7 +46,6 @@ const columns = {
   }
 };
 
-// Tasks - usar PUT en lugar de PATCH para actualizar
 const tasks = {
   list: async (boardId) => {
     try {
@@ -60,10 +57,12 @@ const tasks = {
         const resp = await api.get(`/tasks?board_id=${boardId}`);
         return resp.data;
       } catch (e) {
+          console.error("Error al formatear la fecha:", e);
         try {
           const resp = await api.get(`/items?boardId=${boardId}`);
           return resp.data;
         } catch (e2) {
+            console.error("Error al formatear la fecha:", e2);
           console.error('All task endpoints failed');
           return [];
         }
@@ -78,7 +77,6 @@ const tasks = {
     return resp.data;
   },
   update: async (taskId, payload) => {
-    // Cambiar PATCH por PUT
     const resp = await api.put(`/tasks/${taskId}`, payload);
     return resp.data;
   },

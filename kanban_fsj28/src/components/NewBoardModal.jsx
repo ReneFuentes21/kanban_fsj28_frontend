@@ -14,8 +14,6 @@ const NewBoardModal = ({ onClose, onCreate }) => {
         
         try {
             await onCreate(boardName.trim());
-            // Si onCreate se completa sin errores, el modal debería cerrarse
-            // Si no se cierra, significa que onCreate no está resolviendo/rechazando correctamente
         } catch (err) {
             console.error('Error creating board:', err);
             setError(err.message || 'Error al crear el tablero');

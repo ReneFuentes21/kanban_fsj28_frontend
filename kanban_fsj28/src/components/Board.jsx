@@ -3,7 +3,16 @@ import Column from './Column';
 import { Status } from '../constants';
 import { PencilIcon, PlusIcon, TrashIcon } from '../constants';
 
-const Board = ({ board, onAddTask, onDeleteTask, onEditTask, onSaveTask, onRenameBoard, onDeleteBoard }) => {
+const Board = ({ 
+    board, 
+    onAddTask, 
+    onDeleteTask, 
+    onEditTask, 
+    onSaveTask, 
+    onRenameBoard, 
+    onDeleteBoard,
+    onMoveTask
+}) => {
     return (
         <div className="space-y-6">
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 dark:bg-slate-800 dark:border-slate-700">
@@ -26,7 +35,6 @@ const Board = ({ board, onAddTask, onDeleteTask, onEditTask, onSaveTask, onRenam
                         <PlusIcon />
                         <span>Agregar tarea</span>
                     </button>
-                    {/* BOTÓN CORREGIDO - pasar board.id */}
                     <button
                         onClick={() => onDeleteBoard(board.id)}
                         className="flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
@@ -46,6 +54,7 @@ const Board = ({ board, onAddTask, onDeleteTask, onEditTask, onSaveTask, onRenam
                         onDeleteTask={onDeleteTask}
                         onEditTask={onEditTask}
                         onSaveTask={onSaveTask}
+                        onMoveTask={onMoveTask}
                     />
                 ))}
             </div>

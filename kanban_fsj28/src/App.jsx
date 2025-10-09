@@ -8,10 +8,9 @@ import NewBoardModal from './components/NewBoardModal';
 import RenameBoardModal from './components/RenameBoardModal';
 
 const App = () => {
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' o 'list'
+  const [viewMode, setViewMode] = useState('kanban');
   
   const {
-    // State
     boards,
     activeBoardId,
     editingTask,
@@ -19,28 +18,23 @@ const App = () => {
     renamingBoard,
     loading,
     error,
-    
-    // Setters
     setActiveBoardId,
     setEditingTask,
     setIsNewBoardModalOpen,
     setRenamingBoard,
-    
-    // Actions
     handleCreateNewBoard,
     handleRenameBoard,
     handleDeleteBoard,
     handleAddTask,
     handleSaveTask,
-    handleDeleteTask
+    handleDeleteTask,
+    handleMoveTask
   } = useKanban();
 
   const activeBoard = boards.find(b => b.id === activeBoardId) || null;
 
-  // Manejar error si existe
   if (error) {
     console.error('Error en App:', error);
-    // Puedes mostrar un toast o modal de error aquí
   }
 
   return (
@@ -94,11 +88,11 @@ const App = () => {
               if (activeBoard) setRenamingBoard(activeBoard);
             }}
             onDeleteBoard={handleDeleteBoard}
+            onMoveTask={handleMoveTask}
           />
         )}
       </main>
 
-      {/* Modales */}
       {editingTask && (
         <EditTaskModal
           task={editingTask}
@@ -122,13 +116,12 @@ const App = () => {
         />
       )}
 
-      {/* Toast de error (opcional) */}
       {error && (
         <div className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-md shadow-lg z-50">
           <div className="flex items-center justify-between">
             <span>{error}</span>
             <button 
-              onClick={() => {}} // Aquí podrías agregar un clearError si lo necesitas
+              onClick={() => {}}
               className="ml-4 text-white hover:text-gray-200"
             >
               ×

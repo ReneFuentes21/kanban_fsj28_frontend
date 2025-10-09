@@ -17,7 +17,6 @@ export const useKanban = () => {
   const loading = boardsLoading || tasksLoading;
   const error = boardsError || tasksError;
 
-  // Load boards on mount
   useEffect(() => {
     boardsActions.loadBoards().then(loadedBoards => {
       if (loadedBoards.length > 0) {
@@ -26,7 +25,6 @@ export const useKanban = () => {
     });
   }, []);
 
-  // Load active board data when it changes
   useEffect(() => {
     if (!activeBoardId) return;
     
@@ -42,7 +40,6 @@ export const useKanban = () => {
     });
   }, [activeBoardId]);
 
-  /* Board operations */
   const handleCreateNewBoard = useCallback(async (newBoardName) => {
     try {
       const created = await boardsActions.createBoard(newBoardName);
@@ -80,8 +77,6 @@ export const useKanban = () => {
         }]);
         
         setActiveBoardId(created.id);
-        
-        // ✅ CERRAR EL MODAL DESPUÉS DE CREAR EXITOSAMENTE
         setIsNewBoardModalOpen(false);
       }
     } catch (err) {
@@ -107,7 +102,6 @@ export const useKanban = () => {
         return remaining;
       });
     } catch (err) {
-      // Si hay error pero es porque el tablero ya no existe, actualizar estado igualmente
       if (err.message?.includes('No query results') || err.message?.includes('not found')) {
         console.warn('Board no encontrado, actualizando estado local');
         setBoards(prev => prev.filter(b => b.id !== boardId));
@@ -118,12 +112,11 @@ export const useKanban = () => {
           });
         }
       } else {
-        throw err; // Relanzar otros errores
+        throw err;
       }
     }
   }, [boardsActions, activeBoardId, boards]);
 
-  /* Task operations */
   const handleAddTask = useCallback((columnId) => {
     const newTask = {
       id: null,
@@ -131,13 +124,120 @@ export const useKanban = () => {
       description: '',
       status: columnId,
       priority: Priority.MEDIA,
+      progress: 0,
       user: { name: '', role: '', avatarUrl: 'https://i.pravatar.cc/40' },
+      allocator: '',
       creationDate: new Date(),
       deadline: null,
       isNew: true,
     };
     setEditingTask(newTask);
   }, []);
+
+  const handleMoveTask = useCallback(async (taskId, fromColumnId, toColumnId) => {
+    if (!activeBoardId) return;
+
+    const originalBoardState = boards.find(b => b.id === activeBoardId);
+    const originalTask = originalBoardState?.columns
+      .flatMap(col => col.tasks)
+      .find(t => t.id === taskId);
+
+    if (!originalTask) {
+      console.warn('Tarea no encontrada en estado original');
+      return;
+    }
+
+    setBoards(prev => prev.map(board => {
+      if (board.id !== activeBoardId) return board;
+
+      let movedTask = null;
+      const updatedColumns = board.columns.map(column => {
+        if (column.id === fromColumnId) {
+          const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+          if (taskIndex !== -1) {
+            movedTask = column.tasks[taskIndex];
+            return {
+              ...column,
+              tasks: column.tasks.filter(t => t.id !== taskId)
+            };
+          }
+        }
+        return column;
+      });
+
+      if (!movedTask) {
+        console.warn('Tarea no encontrada en columna origen');
+        return board;
+      }
+
+      const taskWithNewStatus = {
+        ...movedTask,
+        status: toColumnId
+      };
+
+      const finalColumns = updatedColumns.map(column => {
+        if (column.id === toColumnId) {
+          return {
+            ...column,
+            tasks: [...column.tasks, taskWithNewStatus]
+          };
+        }
+        return column;
+      });
+
+      return {
+        ...board,
+        columns: finalColumns
+      };
+    }));
+
+    try {
+      const activeBoard = boards.find(b => b.id === activeBoardId);
+      if (!activeBoard) return;
+
+      const newCardId = getCardIdFromColumnName(toColumnId, activeBoard.columns);
+      
+      const payload = {
+        taskName: originalTask.title || 'Tarea sin título',
+        description: originalTask.description || '',
+        startDate: originalTask.creationDate ? 
+          new Date(originalTask.creationDate).toISOString().split('T')[0] : 
+          new Date().toISOString().split('T')[0],
+        endDate: originalTask.deadline ? 
+          new Date(originalTask.deadline).toISOString().split('T')[0] : null,
+        allocator: originalTask.allocator || originalTask.user?.name || 'Usuario',
+        employee: originalTask.user?.name || 'Usuario',
+        priority: originalTask.priority || Priority.MEDIA,
+        progress: originalTask.progress || 0,
+        card_id: newCardId
+      };
+
+      await tasksActions.updateTask(taskId, payload);
+
+    } catch (error) {
+      console.error('❌ Error al actualizar tarea en API:', error);
+      
+      setBoards(prev => prev.map(board => {
+        if (board.id !== activeBoardId) return board;
+        const columnsWithoutTask = board.columns.map(column => ({
+          ...column,
+          tasks: column.tasks.filter(t => t.id !== taskId)
+        }));
+        return {
+          ...board,
+          columns: columnsWithoutTask.map(column => {
+            if (column.id === fromColumnId) {
+              return {
+                ...column,
+                tasks: [...column.tasks, originalTask]
+              };
+            }
+            return column;
+          })
+        };
+      }));
+    }
+  }, [activeBoardId, boards, tasksActions]);
 
   const handleSaveTask = useCallback(async (savedTask) => {
     if (!activeBoardId) throw new Error('No board activo seleccionado.');
@@ -152,11 +252,9 @@ export const useKanban = () => {
       cardId = getCardIdFromColumnName(savedTask.status, activeBoard.columns);
     } else {
       const currentTask = activeBoard.columns.flatMap(col => col.tasks).find(t => t.id === savedTask.id);
-      
       if (currentTask) {
         const currentColumnId = getCardIdFromColumnName(currentTask.status, activeBoard.columns);
         const newColumnId = getCardIdFromColumnName(savedTask.status, activeBoard.columns);
-        
         didColumnChange = currentColumnId !== newColumnId;
         cardId = didColumnChange ? newColumnId : currentColumnId;
       } else {
@@ -164,15 +262,30 @@ export const useKanban = () => {
       }
     }
 
+    const formatDateForAPI = (date) => {
+      if (!date) return null;
+      try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) {
+          console.warn('Fecha inválida:', date);
+          return null;
+        }
+        return d.toISOString().split('T')[0];
+      } catch (error) {
+        console.error('Error formateando fecha:', error);
+        return null;
+      }
+    };
+
     const payload = {
       taskName: savedTask.title || 'Nueva Tarea',
       description: savedTask.description || '',
-      startDate: savedTask.creationDate ? new Date(savedTask.creationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      endDate: savedTask.deadline ? new Date(savedTask.deadline).toISOString().split('T')[0] : null,
-      allocator: savedTask.user?.name || 'Usuario',
+      startDate: formatDateForAPI(savedTask.creationDate) || new Date().toISOString().split('T')[0],
+      endDate: formatDateForAPI(savedTask.deadline),
+      allocator: savedTask.allocator || savedTask.user?.name || 'Usuario',
       employee: savedTask.user?.name || 'Usuario',
       priority: savedTask.priority || Priority.MEDIA,
-      progress: 0,
+      progress: parseInt(savedTask.progress) || 0,
       card_id: cardId
     };
 
@@ -180,28 +293,26 @@ export const useKanban = () => {
       let updatedTask;
 
       if (!savedTask.id) {
-        // Crear nueva tarea
         const created = await tasksActions.createTask(activeBoardId, payload);
-        
         updatedTask = {
           id: created.id || Date.now(),
           title: created.taskName || payload.taskName,
           description: created.description || payload.description,
           status: savedTask.status,
           priority: created.priority || payload.priority,
+          progress: created.progress || payload.progress,
           user: {
-            name: created.allocator || payload.allocator,
+            name: created.employee || payload.employee,
             role: '',
             avatarUrl: 'https://i.pravatar.cc/40'
           },
+          allocator: created.allocator || payload.allocator,
           creationDate: new Date(created.startDate || payload.startDate),
           deadline: created.endDate ? new Date(created.endDate) : (payload.endDate ? new Date(payload.endDate) : null),
         };
 
-        // Actualizar estado para nueva tarea
         setBoards(prev => prev.map(board => {
           if (board.id !== activeBoardId) return board;
-          
           return {
             ...board,
             columns: board.columns.map(column => {
@@ -217,47 +328,30 @@ export const useKanban = () => {
         }));
 
       } else {
-        // Actualizar tarea existente
         await tasksActions.updateTask(savedTask.id, payload);
-        
-        // CORRECCIÓN: Usar el deadline de savedTask en lugar de payload.endDate
-        // porque savedTask ya tiene el Date object correcto
         const updatedDeadline = savedTask.deadline instanceof Date ? savedTask.deadline : 
-                               (payload.endDate ? new Date(payload.endDate) : null);
-        
-        // Crear el objeto actualizado para el estado local
+                               (savedTask.deadline ? new Date(savedTask.deadline) : null);
         updatedTask = {
           ...savedTask,
           title: payload.taskName,
           description: payload.description,
           priority: payload.priority,
+          progress: payload.progress,
           user: {
             ...savedTask.user,
-            name: payload.allocator
+            name: payload.employee || payload.allocator
           },
-          deadline: updatedDeadline, // ← ESTA ES LA CORRECCIÓN CLAVE
+          allocator: payload.allocator,
+          deadline: updatedDeadline,
         };
 
-        console.log('🔄 Actualizando tarea en estado:', {
-          id: updatedTask.id,
-          title: updatedTask.title,
-          deadline: updatedTask.deadline,
-          deadlineType: typeof updatedTask.deadline
-        });
-
-        // Actualizar estado local inmediatamente
         if (didColumnChange) {
-          // Si cambió de columna, mover la tarea
           setBoards(prev => prev.map(board => {
             if (board.id !== activeBoardId) return board;
-            
-            // Remover de todas las columnas
             const columnsWithoutTask = board.columns.map(column => ({
               ...column,
               tasks: column.tasks.filter(task => task.id !== savedTask.id)
             }));
-            
-            // Agregar a la nueva columna
             return {
               ...board,
               columns: columnsWithoutTask.map(column => {
@@ -272,17 +366,14 @@ export const useKanban = () => {
             };
           }));
         } else {
-          // Si no cambió de columna, actualizar en la misma columna
           setBoards(prev => prev.map(board => {
             if (board.id !== activeBoardId) return board;
-            
             return {
               ...board,
               columns: board.columns.map(column => ({
                 ...column,
                 tasks: column.tasks.map(task => {
                   if (task.id === savedTask.id) {
-                    console.log('✅ Tarea actualizada en columna - Deadline:', updatedTask.deadline);
                     return updatedTask;
                   }
                   return task;
@@ -293,22 +384,17 @@ export const useKanban = () => {
         }
       }
       
-      // ✅ CERRAR EL MODAL DE EDICIÓN DESPUÉS DE GUARDAR EXITOSAMENTE
       setEditingTask(null);
-      
-      return updatedTask; // Retornar la tarea actualizada
-      
+      return updatedTask;
     } catch (err) {
       console.error('❌ Error guardando tarea:', err);
-      throw err; // Relanzar el error para que el modal lo maneje
+      throw err;
     }
   }, [activeBoardId, boards, tasksActions]);
 
   const handleDeleteTask = useCallback(async (taskToDelete) => {
     if (!taskToDelete?.id) return;
-    
     await tasksActions.deleteTask(taskToDelete.id);
-    
     setBoards(prev => prev.map(b => {
       if (b.id !== activeBoardId) return b;
       return {
@@ -327,7 +413,6 @@ export const useKanban = () => {
   }, [boardsActions, tasksActions]);
 
   return {
-    // State
     boards,
     activeBoardId,
     editingTask,
@@ -335,20 +420,17 @@ export const useKanban = () => {
     renamingBoard,
     loading,
     error,
-    
-    // Setters
     setActiveBoardId,
     setEditingTask,
     setIsNewBoardModalOpen,
     setRenamingBoard,
-    
-    // Actions
     handleCreateNewBoard,
     handleRenameBoard,
     handleDeleteBoard,
     handleAddTask,
     handleSaveTask,
     handleDeleteTask,
+    handleMoveTask,
     clearError
   };
 };

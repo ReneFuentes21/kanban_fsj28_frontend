@@ -1,4 +1,3 @@
-// src/services/apiClient.js
 import axios from 'axios';
 
 const BASE = import.meta.env.VITE_API_BASE_URL || 'https://kanbanapibackend-production.up.railway.app/api/v1';
@@ -9,7 +8,6 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Response interceptor for centralized error handling
 api.interceptors.response.use(
   res => res,
   err => {

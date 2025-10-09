@@ -61,19 +61,15 @@ export const useBoards = () => {
     setLoading(true);
     try {
       await kanbanService.boards.remove(boardId);
-      // Actualizar el estado local incluso si falla la API
       setBoards(prev => prev.filter(b => b.id !== boardId));
       return true;
     } catch (err) {
       console.error('Error deleting board from API:', err);
-      
-      // Si el error es que el tablero no existe, lo eliminamos del estado local igualmente
       if (err.message?.includes('No query results') || err.message?.includes('not found')) {
         console.warn('Board no encontrado en API, eliminando del estado local');
         setBoards(prev => prev.filter(b => b.id !== boardId));
         return true;
       }
-      
       setError(err.message || 'Error deleting board');
       throw err;
     } finally {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { STATUS_COLORS, PRIORITY_COLORS, TrashIcon, CalendarIcon, Priority } from '../constants';
+import { useDrag } from 'react-dnd';
+import { STATUS_COLORS, PRIORITY_COLORS, TrashIcon, CalendarIcon, Priority, ItemTypes } from '../constants';
 
 const formatDateForInput = (date) => {
     if (!date) return '';
@@ -10,6 +11,7 @@ const formatDateForInput = (date) => {
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     } catch (e) {
+        console.error("Error al formatear la fecha:", e);
         return '';
     }
 };
@@ -25,20 +27,27 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
         }
     }, [task, editingField]);
 
-    // Función para encontrar en qué columna está esta tarea
+    const [{ isDragging }, drag] = useDrag(() => ({
+        type: ItemTypes.TASK,
+        item: { 
+            id: task.id,
+            currentColumn: columns.find(col => col.tasks?.some(t => t.id === task.id))?.id 
+        },
+        collect: (monitor) => ({
+            isDragging: !!monitor.isDragging(),
+        }),
+    }), [task.id, columns]);
+
     const findTaskColumn = () => {
         if (!columns || columns.length === 0) {
             return null;
         }
-
-        // Buscar en qué columna está esta tarea
         for (const column of columns) {
             const taskInColumn = column.tasks?.find(t => t.id === task.id);
             if (taskInColumn) {
                 return column;
             }
         }
-        
         return null;
     };
 
@@ -49,13 +58,11 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
 
     const getStatusColor = () => {
         const column = findTaskColumn();
-        if (!column) return 'bg-gray-100 text-gray-800';
-        
+        if (!column) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
         if (column.color) {
             return column.color;
         }
-        
-        return STATUS_COLORS[column.id] || 'bg-gray-100 text-gray-800';
+        return STATUS_COLORS[column.title] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     };
 
     const getDeadlineColor = (deadline) => {
@@ -71,6 +78,24 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
         if (diffDays < 0) return 'text-red-600 font-semibold dark:text-red-400';
         if (diffDays <= 3) return 'text-orange-500 font-semibold dark:text-orange-400';
         return 'text-gray-500 dark:text-gray-400';
+    };
+
+    const getDaysRemaining = (deadline) => {
+        if (!deadline) return null;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deadlineDate = new Date(deadline);
+        deadlineDate.setHours(0, 0, 0, 0);
+
+        const diffTime = deadlineDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Hoy';
+        if (diffDays === 1) return '1 día';
+        if (diffDays > 1) return `${diffDays} días`;
+        if (diffDays === -1) return '1 día de retraso';
+        return `${Math.abs(diffDays)} días de retraso`;
     };
 
     const handleFieldChange = (e) => {
@@ -97,13 +122,9 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
                 deadline: finalDeadline,
             };
 
-            console.log('Saving task from card:', taskToSave);
             await onSave(taskToSave);
-            console.log('Task saved successfully from card');
-            
         } catch (err) {
             console.error('Error saving task from card:', err);
-            // Revertir cambios en caso de error
             setEditedTask(task);
         } finally {
             setIsSaving(false);
@@ -116,22 +137,31 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
             e.preventDefault();
             handleSave();
         } else if (e.key === 'Escape') {
-            setEditedTask(task); // Revertir cambios
+            setEditedTask(task);
             setEditingField(null);
         }
     };
 
     const handleStartEditing = (field) => {
-        setEditedTask(task); // Reset to original task data before editing a field
+        setEditedTask(task);
         setEditingField(field);
     };
 
     return (
         <div
+            ref={drag}
+            style={{ 
+                opacity: isDragging ? 0.5 : 1,
+                cursor: isDragging ? 'grabbing' : 'grab'
+            }}
             onDoubleClick={onEdit}
-            className="bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-3 hover:shadow-lg transition-shadow duration-200 dark:bg-slate-700 dark:border-slate-600 cursor-pointer relative"
-            title="Doble clic para editar en detalle"
+            className="bg-white rounded-lg shadow-md border border-gray-200 p-4 space-y-3 hover:shadow-lg transition-all duration-200 dark:bg-slate-700 dark:border-slate-600 cursor-grab relative"
+            title="Arrastrar para mover entre columnas | Doble clic para editar en detalle"
         >
+            {isDragging && (
+                <div className="absolute inset-0 bg-blue-100 bg-opacity-20 border-2 border-dashed border-blue-400 rounded-lg pointer-events-none"></div>
+            )}
+
             {isSaving && (
                 <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded-lg z-10 dark:bg-slate-700 dark:bg-opacity-70">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
@@ -182,17 +212,18 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
                     onBlur={handleSave}
                     onKeyDown={handleKeyDown}
                     onClick={e => e.stopPropagation()}
-                    rows={3}
+                    rows={2}
                     className="text-sm w-full border border-gray-300 rounded-md px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 cursor-text"
                     autoFocus
                     disabled={isSaving}
+                    placeholder="Descripción de la tarea..."
                 />
             ) : (
                 <p 
                     onClick={(e) => { e.stopPropagation(); handleStartEditing('description'); }} 
                     className="text-sm text-gray-600 mt-1 min-h-[1.25rem] dark:text-gray-300"
                 >
-                    {task.description || <span className="text-gray-400 dark:text-gray-500 italic">Sin Descripción</span>}
+                    {task.description || <span className="text-gray-400 dark:text-gray-500 italic">Sin descripción</span>}
                 </p>
             )}
 
@@ -200,34 +231,59 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
                 {getColumnName()}
             </span>
 
+            <div className="space-y-1">
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>Progreso</span>
+                    <span className="font-semibold">{task.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                    <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                            (task.progress || 0) >= 100 ? 'bg-green-600' :
+                            (task.progress || 0) >= 75 ? 'bg-blue-600' :
+                            (task.progress || 0) >= 50 ? 'bg-yellow-500' :
+                            (task.progress || 0) >= 25 ? 'bg-orange-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${task.progress || 0}%` }}
+                    ></div>
+                </div>
+            </div>
+
             <div className="flex items-center pt-2">
                 <img className="h-8 w-8 rounded-full object-cover" src={task.user.avatarUrl} alt={task.user.name} />
                 <div className="ml-3 text-sm">
                     <p className="font-semibold text-gray-900 dark:text-gray-50">{task.user.name}</p>
-                    <div className="flex items-center space-x-2">
-                        <p className="text-gray-500 dark:text-gray-400">{task.user.role}</p>
-                        {editingField === 'priority' ? (
-                            <select
-                                name="priority"
-                                value={editedTask.priority}
-                                onChange={handleFieldChange}
-                                onBlur={handleSave}
-                                onKeyDown={handleKeyDown}
-                                onClick={e => e.stopPropagation()}
-                                className="text-xs font-semibold border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 cursor-pointer"
-                                autoFocus
-                                disabled={isSaving}
-                            >
-                                {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                        ) : (
-                            <span 
-                                onClick={(e) => { e.stopPropagation(); handleStartEditing('priority'); }} 
-                                className={`text-xs font-semibold px-2 py-0.5 rounded-md ${PRIORITY_COLORS[task.priority]}`}
-                            >
-                                Prioridad {task.priority}
-                            </span>
+                    <div className="flex flex-col space-y-1">
+                        {task.allocator && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Asignado por: <span className="font-medium">{task.allocator}</span>
+                            </p>
                         )}
+                        <div className="flex items-center space-x-2">
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">{task.user.role}</p>
+                            {editingField === 'priority' ? (
+                                <select
+                                    name="priority"
+                                    value={editedTask.priority}
+                                    onChange={handleFieldChange}
+                                    onBlur={handleSave}
+                                    onKeyDown={handleKeyDown}
+                                    onClick={e => e.stopPropagation()}
+                                    className="text-xs font-semibold border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 cursor-pointer"
+                                    autoFocus
+                                    disabled={isSaving}
+                                >
+                                    {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            ) : (
+                                <span 
+                                    onClick={(e) => { e.stopPropagation(); handleStartEditing('priority'); }} 
+                                    className={`text-xs font-semibold px-2 py-0.5 rounded-md ${PRIORITY_COLORS[task.priority]}`}
+                                >
+                                    Prioridad {task.priority}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -257,7 +313,12 @@ const TaskCard = ({ task, columns = [], onEdit, onDelete, onSave }) => {
                             className={`flex items-center space-x-1 ${getDeadlineColor(task.deadline)}`}
                         >
                             <CalendarIcon />
-                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                            <span>
+                                {new Date(task.deadline).toLocaleDateString()}
+                                <span className="ml-1 text-xs opacity-75">
+                                    ({getDaysRemaining(task.deadline)})
+                                </span>
+                            </span>
                         </div>
                     ) : (
                         <button 

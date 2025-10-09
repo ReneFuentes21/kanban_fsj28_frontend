@@ -1,157 +1,318 @@
 import React, { useState, useEffect } from 'react';
-import { Status, Priority } from '../constants';
+import { Priority, CalendarIcon } from '../constants';
+
+const formatDateForInput = (date) => {
+    if (!date) return '';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.error("Error al formatear la fecha:", e);
+        return '';
+    }
+};
 
 const EditTaskModal = ({ task, onClose, onSave }) => {
-    const [formData, setFormData] = useState(task);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [editedTask, setEditedTask] = useState({
+        title: '',
+        description: '',
+        priority: Priority.MEDIA,
+        progress: 0,
+        user: { name: '', role: '' },
+        allocator: '',
+        deadline: null,
+        ...task
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        setFormData(task);
+        setEditedTask({
+            title: task.title || '',
+            description: task.description || '',
+            priority: task.priority || Priority.MEDIA,
+            progress: task.progress || 0,
+            user: {
+                name: task.user?.name || '',
+                role: task.user?.role || ''
+            },
+            allocator: task.allocator || '',
+            deadline: task.deadline || null,
+            status: task.status,
+            id: task.id
+        });
     }, [task]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        if (['name', 'role', 'avatarUrl'].includes(name)) {
-            setFormData(prev => ({
-                ...prev,
-                user: { ...prev.user, [name]: value },
-            }));
-        } else if (name === 'deadline') {
-            setFormData(prev => ({ ...prev, deadline: value ? new Date(value + 'T00:00:00') : null }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+    const handleSave = async () => {
+        if (!editedTask.title.trim()) {
+            alert('El título es requerido');
+            return;
+        }
+
+        if (!editedTask.allocator.trim()) {
+            alert('El campo "Asignado por" es requerido');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            let finalDeadline = null;
+            if (editedTask.deadline) {
+                if (typeof editedTask.deadline === 'string') {
+                    finalDeadline = new Date(editedTask.deadline + 'T00:00:00');
+                } else if (editedTask.deadline instanceof Date) {
+                    finalDeadline = editedTask.deadline;
+                }
+                if (finalDeadline && isNaN(finalDeadline.getTime())) {
+                    console.warn('Fecha inválida, usando null');
+                    finalDeadline = null;
+                }
+            }
+
+            const taskToSave = {
+                ...task,
+                title: editedTask.title.trim(),
+                description: editedTask.description.trim(),
+                priority: editedTask.priority,
+                progress: parseInt(editedTask.progress) || 0,
+                user: {
+                    name: editedTask.user.name.trim() || 'Usuario',
+                    role: editedTask.user.role.trim(),
+                    avatarUrl: task.user?.avatarUrl || 'https://i.pravatar.cc/40'
+                },
+                allocator: editedTask.allocator.trim(),
+                deadline: finalDeadline,
+                status: editedTask.status
+            };
+
+            await onSave(taskToSave);
+        } catch (error) {
+            console.error('Error al guardar:', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const taskToSave = {
-                ...formData,
-                title: formData.title.trim() || 'Nueva Tarea',
-                description: formData.description.trim() || 'Descripción de la nueva tarea.',
+    const handleFieldChange = (e) => {
+        const { name, value } = e.target;
+        if (name.startsWith('user.')) {
+            const userField = name.split('.')[1];
+            setEditedTask(prev => ({
+                ...prev,
                 user: {
-                    ...formData.user,
-                    name: formData.user.name.trim() || 'Sin asignar',
-                    role: formData.user.role.trim() || 'N/A',
-                    avatarUrl: formData.user.avatarUrl.trim() || 'https://i.pravatar.cc/40',
+                    ...prev.user,
+                    [userField]: value
                 }
-            };
-            
-            console.log('Saving task:', taskToSave);
-            await onSave(taskToSave);
-            console.log('Task saved successfully, closing modal');
-            // El modal debería cerrarse automáticamente desde el padre
-            // Si no se cierra, significa que onSave no está resolviendo correctamente
-            
-        } catch (err) {
-            console.error('Error saving task:', err);
-            setError(err.message || 'Error al guardar la tarea');
-        } finally {
-            setLoading(false);
+            }));
+        } else {
+            setEditedTask(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            handleSave();
+        } else if (e.key === 'Escape') {
+            onClose();
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-slate-800">
-                <form onSubmit={handleSubmit}>
-                    <div className="p-6 border-b border-gray-200 dark:border-slate-700">
-                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Editar Tarea</h3>
-                        <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">ID: {task.id}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div 
+                className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-slate-800"
+                onKeyDown={handleKeyDown}
+            >
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {task.id ? 'Editar Tarea' : 'Nueva Tarea'}
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
 
-                    <div className="p-6 space-y-4">
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-4 dark:bg-red-900/20 dark:border-red-800">
-                                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                            </div>
-                        )}
-                        
+                    <div className="space-y-4">
                         <div>
-                            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Título</label>
-                            <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="Nueva Tarea" />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Título *
+                            </label>
+                            <input
+                                type="text"
+                                name="title"
+                                value={editedTask.title}
+                                onChange={handleFieldChange}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                placeholder="Ingresa el título de la tarea"
+                                autoFocus
+                            />
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
-                            <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={3} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="Descripción de la nueva tarea." />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descripción
+                            </label>
+                            <textarea
+                                name="description"
+                                value={editedTask.description}
+                                onChange={handleFieldChange}
+                                rows={3}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                placeholder="Describe la tarea..."
+                            />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
-                                <select id="status" name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600">
-                                    {Object.values(Status).map(s => <option key={s} value={s}>{s}</option>)}
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Asignado a *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="user.name"
+                                    value={editedTask.user.name}
+                                    onChange={handleFieldChange}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                    placeholder="Nombre del responsable"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Asignado por *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="allocator"
+                                    value={editedTask.allocator}
+                                    onChange={handleFieldChange}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                    placeholder="Quién asigna la tarea"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Prioridad
+                                </label>
+                                <select
+                                    name="priority"
+                                    value={editedTask.priority}
+                                    onChange={handleFieldChange}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                >
+                                    <option value={Priority.BAJA}>Baja</option>
+                                    <option value={Priority.MEDIA}>Media</option>
+                                    <option value={Priority.ALTA}>Alta</option>
+                                    <option value={Priority.URGENTE}>Urgente</option>
                                 </select>
                             </div>
-                            <div>
-                                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridad</label>
-                                <select id="priority" name="priority" value={formData.priority} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600">
-                                    {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha Límite</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Fecha Límite
+                                </label>
                                 <input
                                     type="date"
                                     name="deadline"
-                                    id="deadline"
-                                    value={formData.deadline ? new Date(formData.deadline).toISOString().split('T')[0] : ''}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600 [color-scheme:light] dark:[color-scheme:dark]"
+                                    value={formatDateForInput(editedTask.deadline)}
+                                    onChange={handleFieldChange}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100 dark:[color-scheme:dark]"
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Creación</label>
-                                <p className="mt-1 text-sm text-gray-500 pt-2 dark:text-gray-400">{new Date(formData.creationDate).toLocaleString()}</p>
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
-                            <p className="text-md font-semibold text-gray-800 mb-2 dark:text-gray-100">Asignado a</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
-                                    <input type="text" name="name" id="userName" value={formData.user.name} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="Sin asignar" />
-                                </div>
-                                <div>
-                                    <label htmlFor="userRole" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rol</label>
-                                    <input type="text" name="role" id="userRole" value={formData.user.role} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="N/A" />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Progreso: <span className="font-semibold">{editedTask.progress || 0}%</span>
+                            </label>
+                            <div className="flex items-center space-x-4">
+                                <input
+                                    type="range"
+                                    name="progress"
+                                    min="0"
+                                    max="100"
+                                    step="10"
+                                    value={editedTask.progress || 0}
+                                    onChange={handleFieldChange}
+                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600"
+                                />
+                                <div className="flex space-x-1">
+                                    {[0, 25, 50, 75, 100].map(value => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => handleFieldChange({ target: { name: 'progress', value } })}
+                                            className={`px-2 py-1 text-xs rounded ${
+                                                (editedTask.progress || 0) === value 
+                                                    ? 'bg-indigo-600 text-white' 
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-600 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            {value}%
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                            <div className="mt-4">
-                                <label htmlFor="userAvatarUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL del Avatar</label>
-                                <input type="text" name="avatarUrl" id="userAvatarUrl" value={formData.user.avatarUrl} onChange={handleChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600" placeholder="https://i.pravatar.cc/40" />
-                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Rol/Cargo
+                            </label>
+                            <input
+                                type="text"
+                                name="user.role"
+                                value={editedTask.user.role}
+                                onChange={handleFieldChange}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-100"
+                                placeholder="Rol o cargo del responsable"
+                            />
                         </div>
                     </div>
 
-                    <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 dark:bg-slate-900/50 dark:border-slate-700">
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
-                            disabled={loading}
-                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
+                    <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
+                            disabled={isSaving}
                         >
                             Cancelar
                         </button>
-                        <button 
-                            type="submit" 
-                            disabled={loading}
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || !editedTask.title.trim() || !editedTask.user.name.trim() || !editedTask.allocator.trim()}
+                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Guardando...' : 'Guardar Cambios'}
+                            {isSaving ? (
+                                <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Guardando...
+                                </div>
+                            ) : (
+                                'Guardar Tarea'
+                            )}
                         </button>
                     </div>
-                </form>
+
+                    <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                        <p>💡 <kbd>Ctrl + Enter</kbd> para guardar rápido • <kbd>Esc</kbd> para cancelar</p>
+                    </div>
+                </div>
             </div>
         </div>
     );

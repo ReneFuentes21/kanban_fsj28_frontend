@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { BoardIcon, PlusIcon, ListIcon, GridIcon, ChevronDownIcon } from '../constants';
 
 const Header = ({ 
-  boards, 
-  activeBoardId, 
-  onSelectBoard, 
-  onNewBoard, 
-  viewMode, 
-  onViewModeChange 
+    boards, 
+    activeBoardId, 
+    onSelectBoard, 
+    onNewBoard, 
+    viewMode, 
+    onViewModeChange 
 }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const activeBoard = boards.find(b => b.id === activeBoardId);
